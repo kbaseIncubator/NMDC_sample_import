@@ -53,7 +53,10 @@ for sample in nmdc_db["biosample_set"]:
             outstr = outstr + sample[field] + "\t"
 
 
+
     outf.write(header + "\n")
     outf.write(outstr + "\n")
 
     outf.close()
+    #break
+
