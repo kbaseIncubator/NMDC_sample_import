@@ -1,0 +1,2 @@
+id	sample_name	description	location_description	collection_date	nmdc:type	"nmdc:community"	nmdc:ecosystem	"nmdc:ecosystem_type"	"gold:habitat"	nmdc:mod_date	"gold:ncbi_taxonomy_name"	
+gold:Gb0061273	Avena fatua rhizosphere microbial communities - H1_Rhizo_Litter_1	Avena fatua rhizosphere sample	Hopland, California, USA	2013-03-15	nmdc:Biosample	microbial communities	Host-associated	Rhizosphere	Avena fatua rhizosphere	11-FEB-20 06.23.51.904000000 PM	soil metagenome	
