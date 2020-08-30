@@ -17,6 +17,7 @@ def map_to_kbase_tsv(nmdc_db, nmdc_to_kbase__map):
             searchstr = "^"+field+"$"
             print(searchstr)
             mapcol = nmdc_to_kbase__map.filter(regex=searchstr)#nmdc_to_kbase__map.columns.str.findall("^"+field+"$")
+
             print(mapcol)
             #print(mapcol.iloc[1])
             #print(mapcol.iloc[1].index.tolist())
@@ -27,35 +28,81 @@ def map_to_kbase_tsv(nmdc_db, nmdc_to_kbase__map):
             #print(mapcol)
 
             if (not mapcol.empty):
+                print(mapcol.columns)
+                maphit = list(mapcol.columns)[0]
+                print("maphit "+maphit)
                 mapcolfield = mapcol.iloc[0][0]
+
                 print("mapcolfield "+mapcolfield)
                 #print(mapcol.iloc[1])
-                #print(sample[field])
+                print(sample[field])
 
                 if not type(sample[field]) == str:
-                    print(len(sample[field]))
+                    print("NESTED "+str(len(sample[field])))
                     # if len(sample[field]) == 2:
-
 
                     for field2 in sample[field]:
                         print("field2 " + field2)
                         print(sample[field][field2])
 
-                        header = header + mapcolfield  + "\t"
-                        #else:
-                        #header = header + field + "_" + field2 + "\t"
-
-                        outstr = outstr + str(sample[field][field2]) + "\t"
-                        # else if field = "lat_lon":
-                        #    for field2 in sample[field]:
-                        #        print(field2)
-                        #        print(sample[field][field2])
-                        #        header = header + field2+"\t"
-                        #        outstr = outstr + sample[field][field2]+"\t"
+                        ###special case, add two values from field, mapped to different metedata fields
+                        ####NOT YET MODELED IN THE TXT MAPPING FILE
+                        if field == "lat_lon":
+                            for field2 in sample[field]:
+                                print(field2)
+                                print(sample[field][field2])
+                                if(field2 !=  "has_raw_value"):
+                                    header = header + field2+"\t"
+                                    outstr = outstr + str(sample[field][field2])+"\t"
+                            #oddly adds multiple here otherwise
+                            break
+                        elif field == "depth":
+                            data_split = str(sample[field][field2]).split(" ")
+                            header = header + mapcolfield + "\t"
+                            outstr = outstr + data_split[0] + "\t"
+                            #hard-coded
+                            header = header + "depth_scale" + "\t"
+                            outstr = outstr + data_split[1] + "\t"
+                        else:
+                            header = header + mapcolfield + "\t"
+                            outstr = outstr + str(sample[field][field2]) + "\t"
                 else:
-                    header = header + mapcolfield+ "\t"
-                    outstr = outstr + sample[field] + "\t"
+                    #just hard coded
+                    if (maphit.find("\"ENVO\"") != -1):
+                        print("CONSTANT  " + str(sample[field]))
+                        header = header + mapcolfield + "\t"
+                        outstr = outstr + "ENVO" + "\t"
+                    elif (maphit.find("depth") != -1):
+                        print("depthX")
+                        pass
+                    # for constant case with predfined static string in map (true for all samples of this type/source)
+                    # THIS WON'T WORK YET -- NEED BETTER CONVENTION FOR STATIC FIELDS NOT IN SAMPLE AND NOT IN STUDY
+                    #if (mapcolfield.find("\"") != -1):
+                    #    print("CONSTANT  " + str(sample[field]))
+                    #    header = header + mapcolfield + "\t"
+                    #    outstr = outstr + sample[field] + "\t"
 
+                    # for variable case, with specific values provided from sample
+                    else:
+                        header = header + mapcolfield + "\t"
+                        outstr = outstr + str(sample[field]) + "\t"
+            # for macro case, parse and execute macro
+            else:
+                #header = header + "user:"+field + "\t"
+                #outstr = outstr + str(sample[field]) + "\t"
+                pass
+                #index = nmdc_to_kbase__map.columns.str.startswith(field+" = ")
+                #print(index)
+                #if (index.any()):
+                #    mapcol = nmdc_to_kbase__map.loc[:, index]  # nmdc_to_kbase__map.loc[:, index]
+                #    print(mapcol)
+                #    mapcolfield = list(mapcol.columns)[0]#mapcol.iloc[0][1]
+                #    ind = mapcolfield.find("=")
+                #    macro = mapcolfield[ind + 1:]
+                #    print("MACRO " + macro)
+                    #val = ###executre macro on current string
+                #    header = header + macro + "\t"
+                #    outstr = outstr + macro + "\t"
 
         print(str(header))
         print(outstr)
@@ -133,7 +180,7 @@ print(keys_1)
 
 # print(json.dumps(nmdc_db["biosample_set"], indent=2))
 
-nmdc_to_kbase__map = pd.read_csv("NMDC_KBase_field_mapping.txt", sep='\t')
+nmdc_to_kbase__map = pd.read_csv("NMDC_KBase_field_mapping_v2.txt", sep='\t')
 
 print(nmdc_to_kbase__map)
 
