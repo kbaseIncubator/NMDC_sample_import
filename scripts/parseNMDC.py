@@ -7,91 +7,16 @@ def map_to_kbase_tsv(nmdc_db, nmdc_to_kbase__map):
 ###
 ### STUDY IDS
 ###
-    sample_to_study = dict()
-    studies = []
-    print("len(nmdc_db[\"study_set\"])) " + str(len(nmdc_db["study_set"])))
-    countno = 0
-    for omics in nmdc_db["omics_processing_set"]:
-        # print("OMICS")
-        # print(omics)
-        try:
-            sample_to_study[omics["has_input"][0]] = omics["part_of"][0]
-            studies.append(omics["part_of"][0])
-        except:
-            countno = countno + 1
-            # print("no has_input or part_of")
 
-    print("countno " + str(countno))
+    data = load_study_ids(nmdc_db)
 
-    studies = list(set(studies))
+    sample_to_study = data[0]
+    studies = data[1]
 
 ###
 ### STUDY DATA
 ###
-    study_data_list = []
-    columns = []
-    for study in nmdc_db["study_set"]:
-        print("STUDY")
-        print(json.dumps(study, indent=2))
-        print("\n\n")
-
-        header_add = ""
-        outstr_add = ""
-        count = 0
-
-        row_data = {}
-        row = {}
-
-        # only for studies with linked biosamples
-        proceed = False
-        for field in study:
-            if (field == "id"):
-                if (study[field] in studies):
-                    proceed = True
-                    print("proceed")
-                    break
-        if (proceed):
-            for field in study:
-                print("field " + field)
-                print(study[field])
-                print(type(study[field]))
-
-                if type(study[field]) == dict:
-
-                    if 'has_raw_value' in study[field]:
-                        header_add = header_add + field + "\t"
-                        row_data[field] = str(study[field]['has_raw_value'])
-                        # row_data.append(str(study[field]['has_raw_value']))
-                        if (count == 0):
-                            columns.append(field)
-                else:
-                    header_add = header_add + field + "\t"
-                    row_data[field] = str(study[field])
-                    # row_data.append(str(study[field]))
-                    if (count == 0):
-                        columns.append(field)
-
-            if (count == 0):
-                count = 1
-
-        print(header_add)
-        print("row_data")
-        print(row_data)
-        # study_data.append()
-        # row[study['id']] = row_data
-
-        study_data_list.append(row_data)
-
-    print(len(study_data_list))
-    study_data_df = pd.DataFrame(study_data_list)
-
-    print("study_data_df")
-    print(study_data_df.shape)
-    print(study_data_df.describe())
-    print(study_data_df)
-
-    study_data_df.to_csv("study_data_df.tsv", sep="\t")
-
+    study_data_df = load_study_data(nmdc_db, studies)
 
 ###
 ### SAMPLE DATA
@@ -220,20 +145,34 @@ def map_to_kbase_tsv(nmdc_db, nmdc_to_kbase__map):
                     outstr = outstr + "" + "\t"
                     print("ADD empty " + "depth_scale")
 
-        print("study_data_df.columns.values "+str(type(study_data_df.columns.values)))
-        header = header + study_data_df.columns.values
-        print("study_id " + str(study_id))
+        #print("study_data_df.columns.values "+str(type(study_data_df.columns.values)))
+        #print(type(study_data_df.columns.values))
+        #print(study_data_df.columns.values)
+        #print("|"+np.array2string(study_data_df.columns.values, precision=0, separator='\t').join("\t")+"|")
+
+        #x_str = ",".join(x_arrstr)
+        #print("study_data_df.columns.values")
+        #print(study_data_df.columns.values)
+        #print("t.join(study_data_df.columns.values.astype(str))")
+        #print("\t".join(study_data_df.columns.values.astype(str)))
+        header = header + "\t".join(study_data_df.columns.values.astype(str))#map(str, study_data_df.columns.values))#np.array2string(study_data_df.columns.values, precision=0, separator='\t')
+                 #["\t".join(item) for item in study_data_df.columns.values.astype(str)] #study_data_df.columns.values
+        #print("study_id " + str(study_id))
         row_index = np.where(study_data_df["id"] == study_id)
-        print("row_index "+str(row_index))
+        #print("row_index "+str(row_index))
 
         found_row = study_data_df.loc[study_data_df['id'] == study_id]
-        print("found_row "+str(found_row.shape))
-        print(found_row)
-        print(found_row.values)
-        print(np.fromstring(found_row.values))
-        print(type(found_row.values))
-        print(type( np.array2string(found_row.values, precision=2, separator="\t")))
-        outstr = outstr + np.array2string(found_row.values, precision=2, separator="\t")
+        #print("found_row "+str(found_row.shape))
+        #print(found_row)
+        #print(found_row.values)
+        #print(np.fromstring(found_row.values))
+        #print(type(found_row.values))
+
+        #print("testnow")
+        #print(map(str, found_row.values))
+        #print(type( "\t".join(map(str, found_row.values))
+        #print("\t".join(found_row.values[0].astype(str)))
+        outstr = outstr + "\t".join(found_row.values[0].astype(str))#np.array2string(found_row.values, precision=0, separator='\t')#["\t".join(item) for item in found_row.astype(str)] #found_row.values.join("\t")
 
         print(str(header))
         print(outstr)
@@ -243,6 +182,100 @@ def map_to_kbase_tsv(nmdc_db, nmdc_to_kbase__map):
 
         outf.close()
 
+
+
+
+###does first pass of study data, find ids, create sample -> study map
+def load_study_ids(nmdc_db):
+    sample_to_study = dict()
+    studies = []
+    print("len(nmdc_db[\"study_set\"])) " + str(len(nmdc_db["study_set"])))
+    countno = 0
+    for omics in nmdc_db["omics_processing_set"]:
+        # print("OMICS")
+        # print(omics)
+        try:
+            sample_to_study[omics["has_input"][0]] = omics["part_of"][0]
+            print("dict "+omics["has_input"][0]+"\t"+omics["part_of"][0])
+            studies.append(omics["part_of"][0])
+        except:
+            countno = countno + 1
+            # print("no has_input or part_of")
+
+    print("countno " + str(countno))
+
+    studies = list(set(studies))
+
+    return [sample_to_study, studies]
+
+
+###loads all the study data
+def load_study_data(nmdc_db, studies):
+    study_data_list = []
+    columns = []
+    for study in nmdc_db["study_set"]:
+        print("STUDY")
+        print(json.dumps(study, indent=2))
+        print("\n\n")
+
+        header_add = ""
+        outstr_add = ""
+        count = 0
+
+        row_data = {}
+        row = {}
+
+        # only for studies with linked biosamples
+        proceed = False
+        for field in study:
+            if (field == "id"):
+                if (study[field] in studies):
+                    proceed = True
+                    print("proceed")
+                    break
+        if (proceed):
+            for field in study:
+                print("field " + field)
+                print(study[field])
+                print(type(study[field]))
+
+                if type(study[field]) == dict:
+
+                    if 'has_raw_value' in study[field]:
+                        header_add = header_add + field + "\t"
+                        row_data[field] = str(study[field]['has_raw_value'])
+                        # row_data.append(str(study[field]['has_raw_value']))
+                        if (count == 0):
+                            columns.append(field)
+                else:
+                    header_add = header_add + field + "\t"
+                    row_data[field] = str(study[field])
+                    # row_data.append(str(study[field]))
+                    if (count == 0):
+                        columns.append(field)
+
+            if (count == 0):
+                count = 1
+
+        print(header_add)
+        print("row_data")
+        print(row_data)
+        # study_data.append()
+        # row[study['id']] = row_data
+
+        study_data_list.append(row_data)
+
+    print(len(study_data_list))
+    study_data_df = pd.DataFrame(study_data_list)
+
+    print("study_data_df")
+    print(study_data_df.shape)
+    print(study_data_df.describe())
+    print(study_data_df)
+
+    study_data_df.to_csv("study_data_df.tsv", sep="\t")
+
+    return study_data_df
 
 def flatten_to_tsv(nmdc_db):
     print("len(nmdc_db[\"biosample_set\"])) " + str(len(nmdc_db["biosample_set"])))
@@ -273,8 +306,6 @@ def flatten_to_tsv(nmdc_db):
             else:
                 header = header + field + "\t"
                 outstr = outstr + sample[field] + "\t"
-
-
 
         outf.write(header + "\n")
         outf.write(outstr + "\n")
