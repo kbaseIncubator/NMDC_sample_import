@@ -2,6 +2,11 @@ import json
 import pandas as pd
 import numpy as np
 
+
+
+
+
+
 def map_to_kbase_tsv(nmdc_db, nmdc_to_kbase__map):
 
 ###
@@ -13,10 +18,19 @@ def map_to_kbase_tsv(nmdc_db, nmdc_to_kbase__map):
     sample_to_study = data[0]
     studies = data[1]
 
+
 ###
 ### STUDY DATA
 ###
-    study_data_df = load_study_data(nmdc_db, studies)
+
+
+
+    study_keep_fields = ['id', 'name', 'description', 'ecosystem_category', 'specific_ecosystem', 'doi',
+                     'principal_investigator_name']
+    study_true_header = ['nmdc:study_id', 'nmdc:study_name', 'nmdc:study_description', 'nmdc:ecosystem_category',
+                     'nmdc:especific_ecosystem', 'doi', 'principal_investigator']
+
+    study_data_df = load_study_data(nmdc_db, studies, study_keep_fields)
 
 ###
 ### SAMPLE DATA
@@ -145,34 +159,11 @@ def map_to_kbase_tsv(nmdc_db, nmdc_to_kbase__map):
                     outstr = outstr + "" + "\t"
                     print("ADD empty " + "depth_scale")
 
-        #print("study_data_df.columns.values "+str(type(study_data_df.columns.values)))
-        #print(type(study_data_df.columns.values))
-        #print(study_data_df.columns.values)
-        #print("|"+np.array2string(study_data_df.columns.values, precision=0, separator='\t').join("\t")+"|")
 
-        #x_str = ",".join(x_arrstr)
-        #print("study_data_df.columns.values")
-        #print(study_data_df.columns.values)
-        #print("t.join(study_data_df.columns.values.astype(str))")
-        #print("\t".join(study_data_df.columns.values.astype(str)))
-        header = header + "\t".join(study_data_df.columns.values.astype(str))#map(str, study_data_df.columns.values))#np.array2string(study_data_df.columns.values, precision=0, separator='\t')
-                 #["\t".join(item) for item in study_data_df.columns.values.astype(str)] #study_data_df.columns.values
-        #print("study_id " + str(study_id))
-        row_index = np.where(study_data_df["id"] == study_id)
-        #print("row_index "+str(row_index))
-
+        header = header + "\t".join(study_true_header)#"""\t".join(study_data_df.columns.values.astype(str))
         found_row = study_data_df.loc[study_data_df['id'] == study_id]
-        #print("found_row "+str(found_row.shape))
-        #print(found_row)
-        #print(found_row.values)
-        #print(np.fromstring(found_row.values))
-        #print(type(found_row.values))
 
-        #print("testnow")
-        #print(map(str, found_row.values))
-        #print(type( "\t".join(map(str, found_row.values))
-        #print("\t".join(found_row.values[0].astype(str)))
-        outstr = outstr + "\t".join(found_row.values[0].astype(str))#np.array2string(found_row.values, precision=0, separator='\t')#["\t".join(item) for item in found_row.astype(str)] #found_row.values.join("\t")
+        outstr = outstr + "\t".join(found_row.values[0].astype(str))
 
         print(str(header))
         print(outstr)
@@ -210,7 +201,8 @@ def load_study_ids(nmdc_db):
 
 
 ###loads all the study data
-def load_study_data(nmdc_db, studies):
+def load_study_data(nmdc_db, studies, study_keep_fields):
+
     study_data_list = []
     columns = []
     for study in nmdc_db["study_set"]:
@@ -235,27 +227,26 @@ def load_study_data(nmdc_db, studies):
                     break
         if (proceed):
             for field in study:
-                print("field " + field)
-                print(study[field])
-                print(type(study[field]))
+                if(field in study_keep_fields):
+                    print("field " + field)
+                    print(study[field])
+                    print(type(study[field]))
 
-                if type(study[field]) == dict:
+                    if type(study[field]) == dict:
 
-                    if 'has_raw_value' in study[field]:
+                        if 'has_raw_value' in study[field]:
+                            header_add = header_add + field + "\t"
+                            row_data[field] = str(study[field]['has_raw_value'])
+                            # row_data.append(str(study[field]['has_raw_value']))
+                            if (count == 0):
+                                columns.append(field)
+                    else:
                         header_add = header_add + field + "\t"
-                        row_data[field] = str(study[field]['has_raw_value'])
-                        # row_data.append(str(study[field]['has_raw_value']))
+                        row_data[field] = str(study[field])
+                        # row_data.append(str(study[field]))
                         if (count == 0):
                             columns.append(field)
-                else:
-                    header_add = header_add + field + "\t"
-                    row_data[field] = str(study[field])
-                    # row_data.append(str(study[field]))
-                    if (count == 0):
-                        columns.append(field)
-
-            if (count == 0):
-                count = 1
+                            count = 1
 
         print(header_add)
         print("row_data")
